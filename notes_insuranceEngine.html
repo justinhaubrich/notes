@@ -1,0 +1,578 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!--
+Modified from the Debian original for Ubuntu
+Last updated: 2016-11-16
+See: https://launchpad.net/bugs/1288690
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>NextInsure</title>
+<link rel="stylesheet" type="text/css" href="notes.css">
+<style type="text/css" media="screen">
+</style>
+</head>
+<body>
+	<span class='pageTitle' style=''>The Insurance Engine</span>
+<div class="content_section floating_element" style="padding:25px;">
+<p id ="Order of Operations_title" style="font-weight:bold;font-size:12pt;">
+/RETRIEVE/ SENDS BACK CODE FOR ENGINE, WHICH EXECUTES IN CLIENT'S BROWSER
+<br> <br> 1) shResults = new SureHits.Insurance.DisplayEngine(0 or 1);
+<br> &emsp; &emsp;a)      this.CSSObject = new SureHits.Insurance.CSS(engineType, this);
+<br> &emsp; &emsp;        b)      this.clientVars = new SureHits.Insurance.ClientVars(this, _engineType);
+<br> &emsp;      &emsp;   c)      this.DataManipulators = new SureHits.Insurance.DataManipulators(this);
+<br> &emsp;      &emsp;   d)      this.initialize()<br><br>
+2) shResults.GenerateListings(); 
+<br> <br>  </p>
+ <br>
+
+<p id ="Order of Operations">
+<span class='number'>1</span> <span class="big bold title">shResults = new SureHits.Insurance.DisplayEngine(0 or 1);
+</span>	<br> <br><span class='function'><br><span class='big bold'><br> &emsp;after <span class='number-dark'>a</span>, <span class='number-dark'>b</span>, and <span class='number-dark'>c</span><br><span class='number-dark'>d</span>this.initialize() </span>calls clientVars.CheckServerVariables(), injects throbber styling with CSSObject.injectCss, <br><br>&emsp;calls this.SetInstance is If _instanceID was passed as a param Else it calls _this.RenderInstance().  </span>
+
+</span><span class='indent'>
+<br> <br>&emsp;_this is instance of DisplayEngine
+<br> <br>&emsp; shResults as class:DisplayEngine has this.GenerateListings(_variableObject, overrideSuppressLoad) as a callback that is fired after retrieving publisher styles
+</span>
+<span class="function"> in .DisplayEngine()<br>-----------------<br><span class='big bold'> this.GenerateListings()</span><br> checks _variableObject parameter and sets clientVars if any were passed, then it calls _this.clientVars.CheckServerVariabls();
+	<br><br> seg_frm_req is set to false if there is no _variableObject && no _overrideSuppressLoad, else it is set to !_doSuppressLoadOverride
+	<br><br> Checks for initial load suppression and calls _this.injectLoadingThrobber(...)  if pltfrm_suppressLoad or _doSuppressLoadOverride (publisher forces the listing generation themselves if set)  <br><br>&emsp;&emsp;If there is no load suppress set via pltfrm_suppressLoad or _doSuppressLoadOverride (set by param overrideSuppressLoad), _this.GetListingsData(seg_frm_req, false) is called</span>
+<span class='function'> in .DisplayEngine()<br>---------------<br><span class='big bold'>
+		&emsp;&emsp;this.GetListingsData</span> makes the ajax call to get the actual xml object If clientVars.pltfrm_jsonResults is not an object, (if pltfrm_DataPassObject is an object with tracking property, ajax sends pltfrm_DataPassObject to .clientVars.getDataPassEndpoint(), else ajax reaches to url clientVars.getScriptUrl(_seg_frm_req,false)) and on success calls _this.CaptureListingData. If pltfrm_jsonResults is already set, then _this.CaptureListingData(_this.clientVars.pltfrm_jsonResults, _seg_frm_req) is called
+</span>
+<span class='function'> in .DisplayEngine()<br>---------------<br><span class='big bold'> &emsp;this.CaptureListingData (data, _filterUpdated)</span> sets the returned ajax listing results to a global variable (data param is the listings object returned from ajax). If _listingsObj.listings.length > 0 the pltfrm_CurrentSearch object is set, if _listingsObj.listings.length =1 and has the autoredirect property, this.AutoRedirect(_listingsObj) is called, else this.ShowListings(_filterUpdated, false) is called. 
+<br> <br>&emsp;pltfrm_listingResults is set to parameter data
+<br> <br>&emsp;_listingsObj is also set to parameter data
+<br> <br>&emsp;if _listingsObj.listings.length is more than zero, the [0] entry in the data structure is applied to global pltfrm vars
+<br> <br>&emsp;if listings.length is one and has property autoredirect, this.AutoReidrect(_listingsObj) is called, Else this.ShowListings(_filterUpdated, false) is called
+</span>
+<span class='function'>&emsp;this.AutoRedirect sets the returned listings results to a global variable
+</span>
+<span class='function'>&emsp;in .DisplayEngine()<br>-------------<br>&emsp;<span class='big bold'>this.ShowListings(_filterUpdated, _windowResized)</span> changes layout template based on specific devices and orientation
+<br> <br>&emsp;creates header and footer from new SureHits.Insurance.Header(_this,_engineType) and .Footer(...)
+<br> <br>&emsp;calls .CheckServerVariabls(), sets this.listingsObj = pltfrm_listingResults (this is shResults as instance of DisplayEngine)
+<br> <br>&emsp;creates the #listingsResults or #mSHListings div depending on _engineType or empties them if they already exist
+<br> <br>&emsp;removes the #imgLoadThbr
+<br> <br>&emsp;if listingsObj.listings.length is greater than zero this.SetupFeaturedAds() is called to set featured ads
+<br> <br>&emsp;Display engine is initialized by calling a new instance of SureHits.Insurance.DesktopLsitings(_this) or .MobileListings(_this) and set it to _listingAdLibrary
+<br> <br>&emsp;_listingAdLibrary as isntance of .DesktopListings or .MobileListings has the method .showListings(seg_frm_req,_windowResized) which is called to generate indiviual ads
+<br> <br>&emsp;this.injectFilterForm is called
+<br> <br>&emsp;pltfrm_adHeader_Show is checked for ad listings header, and iIf set then _hdrObj.DisplayHeader() is called and applied to _mainHdrObj
+<br> <br>&emsp;The footer is displayed in the same way
+<br> <br>&emsp;the listings are animated using a .slideDown(’fast’) jquery effect
+<br> <br>&emsp;if pltfrm_use_SlickCarousel is set the Slick Carousel is applied by calling .slick(pltfrm_SlickCarousel_definitions)
+<br> <br>&emsp;Custom Scrollbars are handled (If pltfrm_customScrollBar is set)
+<br> <br>&emsp;If button events are lost from ProcessStringPlaceHolders to inject the filterform they are rewired if pltfrm_RewireEvents is set
+<br> <br>&emsp;pltfrm_filterForm_SelectionBar_EditBtnAction is used, calls _this.DataManipulators.OpenCloseSegmentation() or .OpenCloseModal(false)  on filter form buttons
+<br> <br>&emsp;if pltfrm_UnbindEvents is set as an object, the Events property on that object will be used by shJ$(pltfrm_UnbindEvents.DOMElems).unbind(.Events) to get rid of events from speific DOM elements
+<br>
+<br>&emsp;_fltrFrm is instantiated as an instance of new SureHits.Insurance.FilterForm(_this).PrepopulateForm() to prepopulate the filte form
+<br>
+<br>&emsp;If pltfrm_customOnload is set the user is requesting a custom function be called after reults are loaded
+<br>
+<br>&emsp;if pltfrm_pageScroll is true, _this.DataManipulators.pageScroll(pltfrm_scrollTo, pltfrm_scrollDuration) is called to scroll the page to a certain position after the listings load
+<br>
+</span>
+<span class='function'>&emsp;in .DisplayEngine()<br>-------------<br>&emsp;<span class='big bold'>this.UserListingRefresh allows users to request new listing set via client side. Takes a variable object for _newVarsPassed to set pltfrm vars. 
+	</span>
+<br>
+<br>&emsp;Injects loading throbber, calls CheckServerVariables() to check for ABTest index values passed from server so style doesn’t change
+<br>
+<br>&emsp;call new listings with this.GetListingsData(seg_frm_req,_fromWidget)</span>
+<br>
+<br>&emsp;Error Pages care set with pltfrm_errorPage_type
+<span class='function'>&emsp;in .DisplayEngine()<br>-------------<br>&emsp;<span class='big bold'>this.SetupFeaturedAds </span>is used to check if pltfrm_featuredAds is set.  
+<br><br>If pltfrm_featuredAds_Styles is an object with actual styles then clientVars.ValidateCustomStyles(pltfrm_featuredAds_Styles) is called
+<br><br>If pltfrm_featuredAds_IdentifierType is ‘count’ and pltfrm_featuredAds_Count > 0 and If pltfrm_listingResults.listings is greater than 0, the .isFeatured property is set to true for that listing
+	</span>
+	<span class='function'>&emsp;in .DisplayEngine()<br>-------------<br>&emsp;<span class='big bold'> this.ProcessTemplateSpecificVariables</span> checks for specific variabls that need to be set for specific pltfrm_adbody_template cases</span>
+	<span class='function'>&emsp;in .DisplayEngine()<br>-------------<br>&emsp;<span class='big bold'>this.InjectFilterForm</span> injects the filter form object<br><br> calls new SureHits.Insurance.FilterForm(_this) and applies it to _filterFormInstance
+<br><br>If pltfrm_filterForm_show && !_filterUpdated, _filterFormObj = _filterFormInstance.InejctFilterForm()
+<br><br>If pltfrm__filterFormUseModal is false, pltfrm_filterForm_Location is used to place the filter form (switch checks for cases such as ‘leftbar’, ‘header’, or above’header’
+<br><br>If pltfrm_filterFormUseModal is true, _modalObj with _filterFormObj html is created and appended to the body
+<br><br>pltfrm_filterForm_Modal_AutoPop can be used to show or hide the modal (if true _this.DataManipulators.OpenCloseModal(true) is called)
+<br><br>
+if _engineType is 1 for mobile, this.DeviceSpecificLayout(false, false) is called
+<br><br>										if ni_hpt is set form fields are prepopulated with checks depending on switch case value of ni_hpt (used for health property changes)</span>
+<br><br>										this.initialize()...
+</p>
+
+<p id="1a" style="width:85%;float:right;">
+	<span style='font-size:18pt'><span class='number'>1a</span> this.CSSObject = new SureHits.Insurance.CSS(engineType, this);</span>
+	<br><br>engineType is a 0 or a 1, for desktop or mobile. <br><br>
+	When initialized on this.CSSObject, Switch case in contructor’s initialize() function checks engineType case
+	and applies css as key value pairs in this.CSSLibrary {}<br><br>
+	CSS class also has methods injectCss and injectCssFonts for appending style elements to the &lt;head&gt;<br><br>
+</p>
+
+<p id="1b" style="width:85%;float:right;">
+	<span style='font-size:18pt'><span class='number'>1b</span> this.clientVars = new SureHits.Insurance.ClientVars(this, _engineType);</span>
+	<br><br> context of this on this.clientVars when instantiated is object shResults as class:DisplayEngine
+	<br><br>_this in clientVars is clientVars as ClientVars class
+	<br><br>_scope is a context reference to shResults as class .DisplayEngine
+
+	<span class='function'> in .ClientVars()<br>---------------<br><span class='big bold'>this.initialize()</span> is used to set the default _this.pltfrm_ values </span>
+	<span class='function'> in .ClientVars()<br>---------------<br><span class='big bold'>this.getScriptUrl(...)</span> is used to generate the URL and querystring for the listings and styledata from /Display/Defaults.aspx</span>
+	<span class='function'> in .ClientVars()<br>---------------<br><span class='big bold'>this.CheckServerVariables(...)</span> checks for custom variables set by the server<br>pubCSS = pltfrm_listingResults.customcss or an empty string, same for pubStyles (customstyle).<br><br>Sets pltfrm_custom_css and pltfrm_customoptions to pubCSS and pubStyles if there were returned styles in pltfrm_listingResults<br><br> if ni_widget_css or m_widget_css (depending on engineType) is set, the widget_css is appended to _scope.CSSObject.CSSLibrary['css_widgets']  <br><br>If pltfrm_customoptions is an object the custom styling is sent to _this.ProcessCustomStyles()</span>
+	<span class='function'> in .ClientVars()<br>---------------<br><span class='big bold'>this.ProcessCustomStyles(...)</span>takes objStyles passed from json request and overrides local variables values with objStyles<br><br>loops throush each property in objStyles and updates clientVars with new values </span>
+</p>
+
+<p id="1c" style="width:85%;float:right;">
+	<span style='font-size:18pt'><span class='number'>1c</span> this.DataManipulators = new SureHits.Insurance.DataManipulators(this);</span>
+	<br><br> Has methods for page scrolling (this.pageScoll())
+	<br><br> Has methods for generating the HR spacer between ad listings (this.CreateHRSpacer)<br>Has many methods for injecting elements and processing string placeholders. <br>pltfrm_AMBestRating_Show is used by this.InjectAMBestRating()  to generate the AM Best rating for that publisher<br><br>Has method this.StyleFeaturedListing() for styling the featured listings set with pltfrm_featuredAds_Styles
+	<span class='function'> in .DataManipulators()<br>---------------<br><span class='big bold'>this.GenerateAd(max, i, listingObj, _initialShowState, _filterUpdated)</span> is used to generate the individual ads for the listing set<br>_curListingAdObj = new SurehHits.Insurance.ListingAd(_scope,0)<br>_curListingAd = _curListingAdObj.CreateListingAd(i,listingObj, ..)<br>pltfrm_adQuoteLink_Text or pltfrm_adQuoteLink_BtnImg is used to set the call to action link. </span>
+</p>
+
+
+<p id="2" >
+
+	<span style='font-size:18pt'><span class='number'>2</span>shResults.GenerateListings(_filterUpdated, _windowResized);</span>
+	shResults.GenerateListings(...) calls _this.GetListingsData(seg_frm_req, false).<br> _this.GetListingsData does an ajax request and on success calls _this.CaptureListingData(data, _seg_frm_req) to url clientVars.getScriptUrl(_seg_frm_req,false); if pltfrm_jsonResults is not an object, else it calls .CaptureListingData(pltfrm_jsonresults, _seg_frm_req);<br><br> DisplayEngine.CaptureListingData sets the returned data from ajax to pltfrm_listingResults. It then calls either this.AutoRedirect(_listingsObj) or this.ShowListings(_filterUpdated,false) as long as long as listings.length > 0, Else it calls _this.ListingDataError(...).<br><br> this.ShowListings creates the header and footer objects by calling new SureHits.Insurance.Header(_this,_engineType) and .Footer(...). 
+
+	<span class='function'> in SureHits.Insurance()<br>---------------<br><span class='big bold'>.Header(_this,_engineType)</span> <br><br>Header.DisplayHeader() handles custom header component. <br><br> pltfrm_adHeader_Template is passed through .DataManipulators.ProcessStringPlaceholders() if it is not an empty string. <br> <br> if pltfrm_adHeader_Template is the string '$$FilterFormValuesHeader$$' and pltfrm_CurrentSearch.cusomervals is an object, the #mSHHeaderFltrFrmVals div is assigned to the var _hdrObj<br>pltfrm_filterForm_FieldSelections is a comma separated string that is split into an array for _frmFlds. Each frmOpt in _frmFlds is then looped to create the html for each field with .DataManipulators.FilterFormDisplayValues(_frmFlds[frmOpt], pltfrm_CurrentSearch.customervals[_this.clientVars.pltfrm_filterForm_FormFieldOptions[_frmFlds[frmOpt]].jsVar]), pltfrm_filterForm_SelectionBar_useLabels, pltfrm_filterForm_SelectionBar_LabelsYesNoAnswers, pltfrm_filterForm_SelectionBar_SuppressNoAnsers).appendTo(_dataHolder). <br> It then adds the edit link and adds the filter form #mSHHeader div with the filter form html inside of it.<br><br> Else if _hdrDataObj is not an empty string the $$ hooks are replaced with values from pltfrm_CurrentSearch for the statecode, city, adqty, customername. The header div is then created and set to _hdrObj using shJ$() if it doesn't exist already (#listingHeading or #mSHHeader depending on deviceType) <br> Custom styles for the header that were set with pltfrm_adHeader_BG (css value for background-color), pltfrm_adHeader_Color (css value for color), and pltfrm_adHeader_BGImg (css values for background-image) are then applied with _hdrObj.css()<br><br> the _hdrObj is returned by .Header()</span>
+	<br>	<br>
+	<span class = 'function'><br><span class='big bold'>DisplayEngine.ShowListings()</span><br><br>_domObj is set to #SHlistings or #mSH depending on _engineType
+	<br><br>
+	seg_frm_req = _filterUpdated<br><br>
+	_this.clientVars.CheckServerVariables() is called<br><br>
+	crates a new div to hold the results (#listingsResults or #mSHListings)<br><br>
+	if pltfrm_display_height and pltfrm_fixed_height are set, the height and overflow css properties are set on the _loaderDiv<br><br>
+	The inital #imgLoadThbr is removed<br><br> 
+	if listings.length is greater than 0, this.SetupFeaturedAds() is called</span>
+
+</p>
+</div>
+
+<div class = 'content_section floating_element'>
+<p id="EngineNotes">
+<span style='font-size:32pt'>Tables and Engines</span>
+<br><br>
+<br><br>ENGINES:
+<br><br>1. Bank Engine
+<br><br>BankEngine.js
+<br><br>Deposits.aspx
+<br><br>        <br><br>2. Loans Engine
+<br><br>LoansEngine.js
+<br><br>                Loans.aspx
+<br><br><br><br>        3. Mortgage Engine
+<br><br>                MortgageEngine.js
+<br><br>                Default.aspx
+<br><br><br><br>        4. Insurance Engine
+<br><br>                SureHitsEngine.js
+<br><br>                Insurance.aspx
+<br><br>                        Handles all insurance (Auto, Home, Life, Small Business)
+<br><br><br><br>        5. Credit Cards
+<br><br>                SHCreditCards-src.1.0.1.js
+<br><br>                CreditCards.aspx
+
+<br><br>The javascript for the engines is stored on the server, requested from a client by reaching to /Retrieve/ and served by Defaults.aspx.vb (Visual Basic handles the backend)
+<br><br>
+<br><br>Tables:
+<br><br>        ABTestAccountListing: Holds entries for each test
+<br><br>        AccountOptions: has options that are used by VB
+
+<br><br>CategoryID decides the engine. Mortgage now uses CategoryID 10 (18 is being phased out)
+<br><br>Category: 
+<table style="width:100%"><tr>
+		<tr>       <th> CategoryID</th>  <th>    CategoryTypeID </th><th> CategoryName </th>
+</tr> <tr>
+	<td>    1 </td><td>              1  </td><td>              Auto</td> 
+</tr> <tr>
+	<td>       3     </td><td>          1 </td><td>              Health </td>
+</tr><tr>
+	<td>       4     </td><td>          1   </td><td>            Home</td>
+</tr><tr>
+	<td>        5 </td><td>              1   </td><td>            Life</td>
+</tr><tr>
+	<td>       6   </td><td>     1      </td><td>         Motorcycle</td>
+</tr><tr>
+       <td>        7       </td><td>        1     </td><td>          RV</td>
+</tr><tr>
+<td>        9          </td><td>     1       </td><td>        Small Business</td>
+</tr><tr>
+<td>        14        </td><td>      1   </td><td>            RC2 Auto</td>
+</tr><tr>
+<td>        16      </td><td>        1  </td><td>             Annuities</td>
+</tr><tr>
+<td>        2       </td><td>        2           </td><td>    Home</td>
+</tr><tr>
+<td>        8           </td><td>    2     </td><td>          Auto</td>
+</tr><tr>
+<td>        15      </td><td>        2              </td><td> Premium Home</td>
+</tr><tr>
+<td>        18        </td><td>      2         </td><td>      Mortgage</td>
+</tr><tr>
+<td>        10          </td><td>    3          </td><td>     Mortgage</td>
+</tr><tr>
+<td>        11         </td><td>     3           </td><td>    Deposits</td>
+</tr><tr>
+<td>        12       </td><td>       3          </td><td>     Checking</td>
+</tr><tr>
+<td>        17       </td><td>       3        </td><td>       Personal Loan</td>
+</tr><tr>
+<td>        13           </td><td>   4           </td><td>    Credit Cards</td>
+</tr>
+</table>
+
+<br><br>CategoryTypeID:
+<br><br>---------------
+<table>
+	<tr>
+		<th>   CategoryTypeID</th><th>    CategoryTypeName</th>
+	</tr><tr>
+		<td>  --------------    </td><td>    ----------------</td>
+	</tr><tr><td>   1                    </td><td> Insurance              </td><td>   Insurance
+</tr><tr><td>    2                    </td><td>Finance               </td><td>    Mortgage
+</tr><tr><td> 3                       </td><td>Rates                 </td><td>   Deposits
+</tr><tr><td>4                        </td><td> Offers               </td><td>  CreditCards
+</tr>
+</table>
+
+<br><br>ni_ad_client is the src of the publisher. The engine decides w/ accounts the listings come from
+<br><br>        if hasCost = 1, they are an Advertiser AKA Buyer
+<br><br>        if hasEarnings = 1, they are a Publisher AKA Source
+
+<br><br>The source of the script tag on the publisher's site reaches out to Retrieve/ get JS for the engine:
+<br><br>        /Retrieve/ -> vb that produces javascript which  runs in the client's browser and pings the /Display/ api
+<br><br>        /Display/ -> api returns the xml listing data via ajax
+
+<br><br>DataManipulators namespace in the engines have methods for injecting elements.
+
+<br><br>ni_ad_body_template becomes pltfrm_adbody_template and determines which layout is used.
+</p>
+
+<p id="SureHitsEngine_notes.txt">
+<span style='font-size:32pt'>Important Methods and Variables</span><br>
+<br> pltfrm Variable Notes:<br>
+----------------------<br>
+ni_display_width is a value for width of listings
+
+<br>
+ni_show_sitehost is a boolean to hide or display link in each ad
+
+<br>
+ni_color_tile controls color of title in each individual ad
+<br>&emsp; ni_color_titlehover, ni_title_decoration, and ni_title_decorationhover are used also
+
+<br>
+ni_ad_showcounter is a boolean that toggles the counter that is on the left of each individual ad
+<br>
+On DESKTOP, it is by default set to true, and on mobile it is defaulted to false
+<br>
+pltfrm_use_tableformat
+<br>
+<br>
+Methods:
+<br>
+--------
+<br>
+<br>
+<span class='function'>
+in ClientVars():
+<br>
+----------------
+<br>
+this.CheckServerVariables():
+<br> &emsp;&emsp;Checks pltfrm_listingResults (pltfrm_listingResults is set by .CaptureListingData()) for customcss and customstyles. If pltfrm_listingResults is not an empty string, its customcss and customstyle property are applied to pltfrm_custom_css and pltfrm_customoptions.
+<br>&emsp;&emsp;else there isn't pltfrm_listingResults set already, pltfrm_custom_css and pltfrm_customoptions are set to ni_customoptions and ni_custom_css
+<br>&emsp;&emsp;pltfrm_customoptions are then passed through ProcessCustomStyles if pltfrm_customoptions is an ojbect
+</span>
+
+<span class='function'>
+in DesktopListings()/MobileListings():
+<br>------------------------------------
+<br>
+...Listings.initialize() <br>
+&emsp;&emsp;	if seg_frm_req is true, pltfrm_injectCss is set to false (CSS only needs to be injected when if it is not a reload) (_filterUpdated = seg_frm_req)
+<br>
+&emsp;&emsp;	If !_filterUpdated (it is is not a reload) and if pltfrm_suppressDefaultCSS is not set, some default css is injected with CSSObject.injectCSS and pltfrm_injectCss is set to true.
+<br>
+&emsp;&emsp; if pltfrm_use_SlickCarousel is set, css for the carousel is injected<br>
+&emsp;&emsp; .CheckDefaultLayout() is called. Then Filter Form question data from X-API is checked<br>
+&emsp;&emsp; lastly if pltfrm_custom_css is not a empty string and if !_filterUpdated and pltfrm_injectCSS is true, the custom css is injected with injectCss();<br>
+<br></span>
+<span class='function'> in .DesktopListings/MobileListings()<br>---------------<br><span class='big bold'>DesktopListings.CheckDefaultLayout</span> sends a default layout to .ProcessCustomStyles(..) if pltfrm_customoptions is an empty string. Desktop has a style override for Health (CategoryId 3), Does a switch case on pltfrm_CurrentSearch.categoryid to determine default layout.
+<br>
+MobileListings.CheckDefaultLayout() checks if pltfrm_customoptions is a empty string, then checks for customstyle property on pltfrm_listingResults and if it is not set it then applies and injects default css and sends default _cstmStyles to ProcesscustomStyles(_cstmStyles, '...CheckDefaultLayout). 
+<br>
+<br>
+</span>
+
+<span class='function'>
+in DisplayEngine():
+<br>
+-------------------
+<br><span class='big bold'>
+DisplayEngine.CaptureListingData(data...) </span>is used to set returned listing results to a global variable
+<br>
+<br>
+this.GetListingsData(_seg_frm_req, _fromWidget) in .DisplayEngine checks for plftfrm_jsonResults, if it is not a object it checks pltfrm_DataPassObject for the 'tracking' property an makes an ajax call to clientVars.getDataPassEndpoint(), sending pltfrm_DdataPassObject with some settings it set, then uses _this.CaptureListingData(data,...) to get the new set of listings. If pltfrm_jsonResults is set as an object, ajax calls clientVars.getScriptUrl(...) and on success: sets the data with _this.CaptureListingData
+<br>
+<br>
+this.CaptureListingData (data, _filterUpdated) adds data returned from JSON to global scope variable pltfrm_listingResults
+<br>
+<br>
+</span>
+
+<span class='function'>
+	in .DesktopListings/MobileListings()<br>---------------<br><span class='big bold'>this.AutoRedirect(_listingsObj)</span> is called if listings.length is 1 and it has the property 'autoredirect', otherwise it calls this.ShowListings(_filterUpdated, false) to process the listings. If there are no listings then _this.ListingDataError is called.
+</span>
+
+<span class = 'function '>
+	in .DisplayEngine()<br>---------------<br><span class='big bold'>this.ShowListings()</span> 
+	Sets up the header and footer objects by calling new SureHits.Insurance.Header() and .Footer(). <br>
+	calls .CheckServerVariables()<br>
+	Checks if there is a #listingResults or #mSHlistings div container to hold the results, creates one if there isn't one and empties the div if there already is one.<br>
+</span>
+<span class = 'function'> in .MobileListings()<br>--------------<br><span class = 'big bold'>MobileListings.ShowListings(_filterUpdated, _windowResized)</span>
+	generates the actual listing display components<br>
+	ptfrm_initalDisplayQty sets the initial listings to display to _showInitQty<br>
+	creates the #mListingResults container, as well as containers for each generated ad (_curListingAd...)<br>
+	checks pltfrm_use_tableformat to see if results are held in a TABLE element instead of regular html divs<br>
+	checks pltfrm_CurrentSearch.adqty to display max<br>
+	loops through pltfrm_listingResults.listings to generate the individual displays<br>
+		&emsp;&emsp;if a listingObj hasOwnProperty 'ctco' and pltfrm_suppress_CTCO that listingObj is skipped<br>
+		&emsp;&emsp;calls _this.DeviceSpecificLayout(false,false) on first iteration to get chosen layout template for actual ad content<br>
+		&emsp;&emsp;_curListingAdObj = new SureHits.Insurance.ListingAd(_this,1), _curListingAd = _curListingAdObj.CreateListingAd(i, listingObj, _initalShowState, _filterUpdated) //generates the individual ad for the listing set<br>
+		&emsp;&emsp;_curListingAd is then appended to either _listingscontainerTable or _listingsContainer<br>
+		&emsp;&emsp;checks pltfrm_adDivider_Show to show an HR element between each ad<br>
+		&emsp;&emsp;checks pltfrm_featuredAds and listingObj.isFeatured to call _this.DataManipulators.StyleFeaturedListing(...) if it is featured
+	If pltfrm_adbody_multipleLayouts are there, teh floats are cleared for multiple layouts 
+	After the loop creates each ad and appends them to the _listingsContainer, the _listingsContainer is then appended to the _loaderDiv.
+	&emsp;&emsp;Other settings such as pltfrm_paginNav_show, pltfrm_cta_triggers, pltfrm_apply_roundcorners, and pltfrm_customClassNames are then handled.
+		</span>
+
+<span class = 'function'> in .MobileListings()<br>--------------<br><span class = 'big bold'>MobileListings.Initialize()</span>
+	<br>Handles CSS injection using _this.CSSObject.inJectCSS<br>
+	Calls this.CheckDefaultLayout()<br>
+	checks pltfrm_custom_css and injects a new css block into page header for custom css<br>
+</span>
+<span class = 'function'> in .DesktopListings()<br>--------------<br><span class = 'big bold'>DesktopListings.ShowListings(_filterUpdated, _windowResized)</span>
+	generates the actual listing display components<br>
+	ptfrm_initalDisplayQty sets the initial listings to display to _showInitQty<br>
+	creates the #ListingResults container, as well as containers for each generated ad (_curListingAd...)<br>
+	checks pltfrm_use_tableformat to see if results are held in a TABLE element instead of regular html divs<br>
+	checks pltfrm_adbody_multipleLayouts_IsolatedColumns for multipleLayouts<br>
+	sets the width if !pltfrm_responsiveWidth<br>
+	
+	checks pltfrm_CurrentSearch.adqty to display max<br>
+	loops through pltfrm_listingResults.listings to generate the individual displays<br>
+		&emsp;&emsp;if a listingObj hasOwnProperty 'ctco' and pltfrm_suppress_CTCO that listingObj is skipped<br>
+		&emsp;&emsp;_curListingAdObj = new SureHits.Insurance.ListingAd(_this,1), _curListingAd = _curListingAdObj.CreateListingAd(i, listingObj, _initalShowState, _filterUpdated) //generates the individual ad for the listing set<br>
+		&emsp;&emsp;_curListingAd is then appended to either _listingscontainerTable or _listingsContainer<br>
+		&emsp;&emsp;checks pltfrm_adDivider_Show to show an HR element between each ad<br>
+		&emsp;&emsp;checks pltfrm_featuredAds and listingObj.isFeatured to call _this.DataManipulators.StyleFeaturedListing(...) if it is featured
+	If pltfrm_adbody_multipleLayouts are there, teh floats are cleared for multiple layouts 
+	After the loop creates each ad and appends them to the _listingsContainer, the _listingsContainer is then appended to the _loaderDiv.
+	&emsp;&emsp;Other settings such as pltfrm_paginNav_show, pltfrm_cta_triggers, pltfrm_apply_roundcorners, and pltfrm_customClassNames are then handled.
+		</span>
+
+
+</p>
+<br>
+</div>
+
+<div class = 'content_section floating_element'>
+	<h1 style = 'color:#777;margin:25px;'>Order of Operations </h1>
+<p id = 'Call Order'>
+.GenerateListings() => .GetListingsData() => .CaptureListingData() => .showListings() => .DesktopListing() OR .MobileListing() =>
+</p>
+
+<br>
+<p id='Function_call_order_fromLog'>
+<br>0: "START - SureHits.Insurance.ClientVars.initialize"
+<br>1: "START - ClientVars.ValidateWidth from SureHits.Insurance.ClientVars.initialize.pltfrm_display_width"
+
+<br>7: "END - ClientVars.ValidateWidth from SureHits.Insurance.ClientVars.initialize.pltfrm_display_width"
+<br>8: "START - ClientVars.ValidateWidth from SureHits.Insurance.ClientVars.initialize.pltfrm_display_widthcalc"
+
+<br>14: "END - ClientVars.ValidateWidth from SureHits.Insurance.ClientVars.initialize.pltfrm_display_widthcalc"
+<br>15: "END - SureHits.Insurance.ClientVars.initialize"
+<br>16: "START - DisplayEngine.initialize - 14:2:562"
+<br>17: "START - ClientVars.CheckServerVariables"
+
+<br>22: "ProcessCustomStyles - processing.....ClientVars.CheckServerVariables - #qsSH"
+<br>23: "ProcessCustomStyles - has globalVariableReset"
+<br>24: "START - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_widthorig"
+
+<br>30: "END - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_widthorig"
+<br>31: "START - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_width"
+
+<br>37: "END - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_width"
+<br>38: "START - ClientVars.ValidateWidth from ClientVars.CheckServerVariables"
+
+<br>44: "END - ClientVars.ValidateWidth from ClientVars.CheckServerVariables"
+<br>45: "END - ClientVars.CheckServerVariables"
+<br>46: "START - DisplayEngine.RenderInstance"
+<br>47: "START - DisplayEngine.AddBrowserClass"
+<br>48: "END - DisplayEngine.AddBrowserClass"
+<br>49: "END - DisplayEngine.RenderInstance"
+<br>50: "END - DisplayEngine.initialize"
+<br>51: "START - DisplayEngine.GenerateListings"
+<br>52: "START - ClientVars.CheckServerVariables"
+
+<br>57: "ProcessCustomStyles - processing.....ClientVars.CheckServerVariables - #qsSH"
+<br>58: "ProcessCustomStyles - has globalVariableReset"
+<br>59: "START - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_widthorig"
+
+<br>65: "END - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_widthorig"
+<br>66: "START - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_width"
+
+<br>72: "END - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_width"
+<br>73: "START - ClientVars.ValidateWidth from ClientVars.CheckServerVariables"
+
+<br>79: "END - ClientVars.ValidateWidth from ClientVars.CheckServerVariables"
+<br>80: "END - ClientVars.CheckServerVariables"
+<br>81: "START - DisplayEngine.GetListingsData - #qsSH"
+<br>82: "END - DisplayEngine.GetListingsData - #qsSH"
+<br>83: "END - DisplayEngine.GenerateListings"
+<br>84: "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ START - DisplayEngine.CaptureListingData - #qsSH"
+<br>85: {listings: Array(6), qmpquestions: Array(2), listingheader: "Auto Insurance Providers in California", listingfooter: "<span class="shFtrPwrBy">Listings powered by</span…span class="shFtrBrnd">&nbsp;insurance.com</span>", iconlegend: Array(9), …}
+<br>86: "START - DisplayEngine.ShowListings"
+<br>87: "START - ClientVars.CheckServerVariables"
+
+
+<br>92: "ProcessCustomStyles - processing.....ClientVars.CheckServerVariables - #qsSH"
+<br>93: "ProcessCustomStyles - has globalVariableReset"
+<br>94: "START - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_widthorig"
+
+<br>100: "END - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_widthorig"
+<br>101: "START - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_width"
+
+<br>107: "END - ClientVars.ValidateWidth from ProcessCustomStyles.ni_display_width"
+<br>108: "START - ClientVars.ValidateWidth from ClientVars.CheckServerVariables"
+
+<br>114: "END - ClientVars.ValidateWidth from ClientVars.CheckServerVariables"
+<br>115: "END - ClientVars.CheckServerVariables"
+<br>116: "START - DisplayEngine.SetupFeaturedAds"
+<br>117: "END - DisplayEngine.SetupFeaturedAds"
+<br>118: "START - DesktopListings.initialize"
+<br>119: "START - DesktopListings.CheckDefaultLayout - 1"
+<br>120: {ni_display_width: "975", ni_ad_border: "2", ni_suppress_CTCO: true, ni_seg_a: "40", ni_seg_h: "y", …}
+<br>121: "END - DesktopListings.CheckDefaultLayout"
+<br>122: "END - DesktopListings.initialize"
+<br>123: "START - DesktopListings.showListings"
+<br>124: "START - ListingAd.CreateListingAd"
+
+<br>126: "START - AdBodyTemplate.SelectTemplate"
+<br>127: "END - AdBodyTemplate.SelectTemplate"
+<br>128: "START - DataManipulators.InjectAdvertiserLogo"
+<br>129: "END - DataManipulators.InjectAdvertiserLogo"
+<br>130: "END - ListingAd.CreateLisingAd"
+<br>131: "START - ListingAd.AdBodyTemplateAdjustments"
+<br>132: "END - ListingAd.AdBodyTemplateAdjustments"
+<br>133: "START - ListingAd.AdMouseoverEvents"
+<br>134: "END - ListingAd.AdMouseoverEvents"
+<br>135: "START - DataManipulators.StyleFeaturedListing"
+<br>136: "END - DataManipulators.StyleFeaturedListing"
+<br>137: "START - ListingAd.CreateListingAd"
+
+<br>139: "START - AdBodyTemplate.SelectTemplate"
+<br>140: "END - AdBodyTemplate.SelectTemplate"
+<br>141: "START - DataManipulators.InjectAdvertiserLogo"
+<br>142: "END - DataManipulators.InjectAdvertiserLogo"
+<br>143: "END - ListingAd.CreateLisingAd"
+<br>144: "START - ListingAd.AdBodyTemplateAdjustments"
+<br>145: "END - ListingAd.AdBodyTemplateAdjustments"
+<br>146: "START - ListingAd.AdMouseoverEvents"
+<br>147: "END - ListingAd.AdMouseoverEvents"
+<br>148: "START - ListingAd.CreateListingAd"
+
+<br>150: "START - AdBodyTemplate.SelectTemplate"
+<br>151: "END - AdBodyTemplate.SelectTemplate"
+<br>152: "START - DataManipulators.InjectAdvertiserLogo"
+<br>153: "END - DataManipulators.InjectAdvertiserLogo"
+<br>154: "END - ListingAd.CreateLisingAd"
+<br>155: "START - ListingAd.AdBodyTemplateAdjustments"
+<br>156: "END - ListingAd.AdBodyTemplateAdjustments"
+<br>157: "START - ListingAd.AdMouseoverEvents"
+<br>158: "END - ListingAd.AdMouseoverEvents"
+<br>159: "START - ListingAd.CreateListingAd"
+
+<br>161: "START - AdBodyTemplate.SelectTemplate"
+<br>162: "END - AdBodyTemplate.SelectTemplate"
+<br>163: "START - DataManipulators.InjectAdvertiserLogo"
+<br>164: "END - DataManipulators.InjectAdvertiserLogo"
+<br>165: "END - ListingAd.CreateLisingAd"
+<br>166: "START - ListingAd.AdBodyTemplateAdjustments"
+<br>167: "END - ListingAd.AdBodyTemplateAdjustments"
+<br>168: "START - ListingAd.AdMouseoverEvents"
+<br>169: "END - ListingAd.AdMouseoverEvents"
+<br>170: "START - ListingAd.CreateListingAd"
+
+<br>172: "START - AdBodyTemplate.SelectTemplate"
+<br>173: "END - AdBodyTemplate.SelectTemplate"
+<br>174: "START - DataManipulators.InjectAdvertiserLogo"
+<br>175: "END - DataManipulators.InjectAdvertiserLogo"
+<br>176: "END - ListingAd.CreateLisingAd"
+<br>177: "START - ListingAd.AdBodyTemplateAdjustments"
+<br>178: "END - ListingAd.AdBodyTemplateAdjustments"
+<br>179: "START - ListingAd.AdMouseoverEvents"
+<br>180: "END - ListingAd.AdMouseoverEvents"
+<br>181: "START - ListingAd.CreateListingAd"
+
+<br>183: "START - AdBodyTemplate.SelectTemplate"
+<br>184: "END - AdBodyTemplate.SelectTemplate"
+<br>185: "START - DataManipulators.InjectAdvertiserLogo"
+<br>186: "END - DataManipulators.InjectAdvertiserLogo"
+<br>187: "END - ListingAd.CreateLisingAd"
+<br>188: "START - ListingAd.AdBodyTemplateAdjustments"
+<br>189: "END - ListingAd.AdBodyTemplateAdjustments"
+<br>190: "START - ListingAd.AdMouseoverEvents"
+<br>191: "END - ListingAd.AdMouseoverEvents"
+<br>192: "START - DataManipulators.CenterGoBtn"
+<br>193: "        DataManipulators.CenterGoBtn - inside if"
+<br>194: "        DataManipulators.CenterGoBtn - "
+<br>195: "START - DataManipulators.GetListingDescriptionHeight"
+<br>196: "END - DataManipulators.GetListingDescriptionHeight"
+<br>197: "END - DataManipulators.CenterGoBtn"
+<br>198: "START - DataManipulators.CenterGoBtn"
+<br>199: "        DataManipulators.CenterGoBtn - inside if"
+<br>200: "        DataManipulators.CenterGoBtn - "
+<br>201: "START - DataManipulators.GetListingDescriptionHeight"
+<br>202: "END - DataManipulators.GetListingDescriptionHeight"
+<br>203: "END - DataManipulators.CenterGoBtn"
+<br>204: "START - DataManipulators.CenterGoBtn"
+<br>205: "        DataManipulators.CenterGoBtn - inside if"
+<br>206: "        DataManipulators.CenterGoBtn - "
+<br>207: "START - DataManipulators.GetListingDescriptionHeight"
+<br>208: "END - DataManipulators.GetListingDescriptionHeight"
+<br>209: "END - DataManipulators.CenterGoBtn"
+<br>210: "START - DataManipulators.CenterGoBtn"
+<br>211: "        DataManipulators.CenterGoBtn - inside if"
+<br>212: "        DataManipulators.CenterGoBtn - "
+<br>213: "START - DataManipulators.GetListingDescriptionHeight"
+<br>214: "END - DataManipulators.GetListingDescriptionHeight"
+<br>215: "END - DataManipulators.CenterGoBtn"
+<br>216: "START - DataManipulators.CenterGoBtn"
+<br>217: "        DataManipulators.CenterGoBtn - inside if"
+<br>218: "        DataManipulators.CenterGoBtn - "
+<br>219: "START - DataManipulators.GetListingDescriptionHeight"
+<br>220: "END - DataManipulators.GetListingDescriptionHeight"
+<br>221: "END - DataManipulators.CenterGoBtn"
+<br>222: "START - DataManipulators.CenterGoBtn"
+<br>223: "        DataManipulators.CenterGoBtn - inside if"
+<br>224: "        DataManipulators.CenterGoBtn - "
+<br>225: "START - DataManipulators.GetListingDescriptionHeight"
+<br>226: "END - DataManipulators.GetListingDescriptionHeight"
+<br>227: "END - DataManipulators.CenterGoBtn"
+<br>228: "END - DesktopListings.showListings"
+<br>229: "START - DisplayEngine.InjectFilterForm"
+
+<br>238: "END - DisplayEngine.InjectFilterForm - IF"
+<br>239: "END - DisplayEngine.InjectFilterForm"
+<br>240: "START - Header.DisplayHeader"
+<br>241: "Auto Insurance Providers in California"
+
+<br>243: "END - Header.DisplayHeader"
+<br>244: "END - DisplayEngine.ShowListings"
+<br>245: "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ END - DisplayEngine.CaptureListingData - #qsSH"
+
+</p>
+<br>
+</div>
+</div>
+<div class="content_section floating_element" style="padding:25px;left:50%;transform: translateX(-50%);"> <span class='big bold'>	<a href='notes_insuranceEngine.html'>Insurance Engine</a></span><br><br> <span class='big bold'>	<a href='notes_mortgageEngine.html'>Mortgage Engine</a></span><br><br> <span class='big bold'>	<a href='notes_vb.html'>Visual Basic</a></span><br><br> </div>
+</body>
+</html>
+

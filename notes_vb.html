@@ -1,0 +1,36 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!--
+Modified from the Debian original for Ubuntu
+Last updated: 2016-11-16
+See: https://launchpad.net/bugs/1288690
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>NextInsure</title>
+<link rel="stylesheet" type="text/css" href="notes.css">
+<style type="text/css" media="screen">
+</style>
+</head>
+<body>
+<span class='pageTitle' style=''>Visual Basic (the backend)</span>
+<div class="content_section floating_element" style="padding:25px;box-sizing:border-box; margin:auto;width:100%;">
+	<p id ="Order of Operations_title"> <span style="font-weight:bold;font-size:12pt;">
+		SureHits > ListingDisplay > Util > ScriptLoader.vb</span><br><br>
+	NameSpace SureHits.NextInsure.ListingDisplay.Util has the Public Class ScriptLoader<br>
+	<br>
+	<span class='big bold'>CategoryID on CurrentSupplier.CategoryID determines which engine script is returned by ListingDispaly/Retrieve/Default.aspx.vb</span>
+	<br><br>
+	Category IDs:<br><br> 
+	&emsp;&emsp;<span class='number'>10 </span>  <span class = 'big bold'>loads MortgageEngine.js</span><br><br>
+	&emsp;&emsp;<span class='number'>11</span> or <span class='number'>12 </span>  <span class = 'big bold'>loads BankEngine.js</span><br><br>
+	&emsp;&emsp;<span class='number'>13 </span>  <span class = 'big bold'>loads SHCreditCardss-src.1.0.1.js</span><br><br>
+	&emsp;&emsp;<span class='number'>17 </span>  <span class = 'big bold'>loads LoansEngine.js</span><br><br>
+	&emsp;&emsp;<span class='number' style = 'border-radius:25px;'>1,2,3,4,5,6,7,8,9,15,16,17</span> or <span class='number'>0 </span>  <span class = 'big bold'>loads SureHitsEngine.js</span><br><br>
+	</p>
+<br>
+</div>
+</div>
+<div class="content_section floating_element" style="margin:25px;padding:25px;left:50%;transform: translateX(-50%);"> <span class='big bold'>	<a href='notes_insuranceEngine.html'>Insurance Engine</a></span><br><br> <span class='big bold'>	<a href='notes_mortgageEngine.html'>Mortgage Engine</a></span><br><br> <span class='big bold'>	<a href='notes_vb.html'>Visual Basic</a></span><br><br> </div>
+</body>
+</html>
+
