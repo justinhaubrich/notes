@@ -138,7 +138,10 @@ if _engineType is 1 for mobile, this.DeviceSpecificLayout(false, false) is calle
 	crates a new div to hold the results (#listingsResults or #mSHListings)<br><br>
 	if pltfrm_display_height and pltfrm_fixed_height are set, the height and overflow css properties are set on the _loaderDiv<br><br>
 	The inital #imgLoadThbr is removed<br><br> 
-	if listings.length is greater than 0, this.SetupFeaturedAds() is called</span>
+	if listings.length is greater than 0, this.SetupFeaturedAds() is called
+	<br>
+	<span class='grey'>this.SetupFeaturedAds() checks pltfrm_featuredAds, if true pltfrm_featuredAds_Styles is checked to see if it is typeof 'object', and if it is its properties are counted.<br><br> If pltfrm_featuredAds_Styles has more than 0 properties ValidateCustomStyles(pltfrm_faturedAds_Styles) is called.<br><br> If pltfrm_customoptions is an object and it hasOwnProperty 'ni_featured_styles', the value of ni_featured_styles is validated thorugh ValidateCustomStyles() too.<br><br> Lastly, if pltfrm_featuredAds_IdentifierType is 'count' and pltfrm_featuredAds_Count is greater than 0, the .isFeatured property is applied to the .listings[i] for the count amount.</span>
+</span>
 
 </p>
 </div>

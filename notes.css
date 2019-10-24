@@ -192,3 +192,5 @@ tr:nth-child(odd) {background: #FFF}
 .pageTitle
 {border-radius:5px;font-size:32pt;color:#777;font-weight:bold;margin:20px;background-color:white;display:inline-block;padding:10px;}
 hr {border: 1px solid #777;border-radius:5px; }
+.grey {background-color: #777;color:white;padding:10px;display:inline-block;border-radius:5px;margin:10px; }
+
